@@ -15,7 +15,7 @@ local player = Players.LocalPlayer
 -- ================================================================
 -- PASTE YOUR GITHUB RAW URL HERE (Line 15)
 -- ================================================================
-local SCRIPT_URL = "YOUR_GITHUB_RAW_URL_HERE" 
+local SCRIPT_URL = "https://raw.githubusercontent.com/scvsf/vexobby/refs/heads/main/yea" 
 local SAVE_FILE = "VexObbyState.json"
 
 -- ================================================================
