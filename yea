@@ -1,5 +1,5 @@
 -- ================================================================
--- MULTI-GAME SCRIPT HUB (Auto-Rejoin & Auto-Execute)
+-- MULTI-GAME SCRIPT HUB (Anti-Kick Rejoin Loop)
 -- Tab 1: Vex's Difficulty Chart Obby
 -- Tab 2: Vex's Beginner Obby
 -- ================================================================
@@ -9,13 +9,10 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
-
--- ================================================================
--- PASTE YOUR GITHUB RAW URL HERE (Line 15)
--- ================================================================
-local SCRIPT_URL = "https://raw.githubusercontent.com/scvsf/vexobby/refs/heads/main/yea" 
+local SCRIPT_URL = "https://raw.githubusercontent.com/scvsf/vexobby/refs/heads/main/yea"
 local SAVE_FILE = "VexObbyState.json"
 
 -- ================================================================
@@ -39,21 +36,45 @@ end
 
 local SavedData = LoadState()
 
--- Setup Auto-Execute on rejoin
 local function SetupAutoExecute()
-    if SCRIPT_URL ~= "YOUR_GITHUB_RAW_URL_HERE" then
-        local QueueFunction = queue_on_teleport or queueonteleport or syn.queue_on_teleport
-        if QueueFunction then
-            QueueFunction("loadstring(game:HttpGet('" .. SCRIPT_URL .. "'))()")
-        end
+    local QueueFunction = queue_on_teleport or queueonteleport or syn.queue_on_teleport
+    if QueueFunction then
+        QueueFunction("loadstring(game:HttpGet('" .. SCRIPT_URL .. "'))()")
     end
 end
 
--- Detect Kick/Disconnect to save state and queue script
-game:GetService("Players").PlayerRemoving:Connect(function(plr)
-    if plr == player then
-        SaveState(CurrentTab, autoFarmActive_1 or autoFarmActive_2)
-        SetupAutoExecute()
+local function TriggerRejoin()
+    SaveState(CurrentTab, autoFarmActive_1 or autoFarmActive_2)
+    SetupAutoExecute()
+    task.wait(0.5) 
+    pcall(function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+    end)
+end
+
+-- Force Kick Hook (If Executor Supports)
+local oldKick
+pcall(function()
+    oldKick = hookfunction(player.Kick, function(self, message)
+        TriggerRejoin()
+        return oldKick(self, message)
+    end)
+end)
+
+-- Heartbeat Ghost Check (If Hook Fails)
+task.spawn(function()
+    while task.wait(1) do
+        if not player or not player.Parent or not game:IsLoaded() then
+            TriggerRejoin()
+            break
+        end
+    end
+end)
+
+-- Normal Disconnect Hook
+player.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        TriggerRejoin()
     end
 end)
 
